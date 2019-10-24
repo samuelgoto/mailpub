@@ -13,6 +13,8 @@
 
     <pre id="content" style="white-space: pre-wrap;"></pre>
 
+    <button id="compose">Compose</button>
+
     <script type="text/javascript">
       // Client ID and API key from the Developer Console
       var CLIENT_ID = '1034702123093-c32abr8n7s93t1ct8m4tor60khliem0s.apps.googleusercontent.com';
@@ -54,42 +56,42 @@
           authorizeButton.onclick = handleAuthClick;
           signoutButton.onclick = handleSignoutClick;
         }, function(error) {
-          appendPre(JSON.stringify(error, null, 2));
+          log(JSON.stringify(error, null, 2));
         });
       }
 
-      function message(from, to) {
+      function message(from, to, title, body) {
           let result =
 `Content-Type: multipart/alternative; boundary="boundary-string"
 From: ${from}
 To: ${to}
-Subject: hello world
+Subject: ${title}
 
 --boundary-string
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 Content-Disposition: inline
 
-Plain text email goes here!
-This is the fallback if email client does not support HTML
+${body}
 
 --boundary-string
 Content-Type: text/html; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 Content-Disposition: inline
 
-<h1>This is the HTML Section!</h1>
-<p>This is what displays in most modern email clients</p>
+<p>${body}</p>
 
 --boundary-string
 Content-Type: application/ld+json; charset="utf-8"
 {
   "@context": "http://www.w3.org/ns/mailpub",
   "@type": "Post",
-  "title": "Hello World",
-  "body": "Hi"
+  "title": "${title}",
+  "body": "${body}"
 }
 --boundary-string--`;
+          console.log(title);
+          console.log(result);
           return result;
       }
 
@@ -101,20 +103,47 @@ Content-Type: application/ld+json; charset="utf-8"
           if (isSignedIn) {
               authorizeButton.style.display = 'none';
               signoutButton.style.display = 'block';
-              listLabels();
+              // listLabels();
 
               let {label} = await setUp();
-              console.log(`SetUp: ${label}`);
               let {email, messages} = await getProfile(label);
-              console.log(`Email: ${email}`);
-              console.log(messages);
-              let mime = message(email, "goto@google.com");
-              let {id, thread} = await sendEmail(label, mime);
-              console.log(`Sent: ${id}`);
+              log(`Welcome, ${email}!`);
+              // console.log(messages);
+              log(``);
+              log(`Your posts:`);
+              for (let message of await messages) {
+                  // appendPre(message);
+                  log(`  - [${message.title}]: ${message.body}`);
+              }
+
+              let compose = async function() {
+                  let title = prompt("Enter title");
+                  let body = prompt("Enter body");
+                  let mime = message(email, "goto@google.com", title, body);
+                  let {id, thread} = await sendEmail(label, mime);
+                  log(`Sent: ${id}`);
+              };
+
+              document.getElementById("compose")
+                  .addEventListener("click", compose);
+
           } else {
               authorizeButton.style.display = 'block';
               signoutButton.style.display = 'none';
           }
+      }
+
+      async function getMessage(id) {
+          // console.log(id);
+          let {result} = await gapi.client.gmail.users.messages.get({
+              "userId": "me", id: id});
+          let attachment = result.payload.parts.find(part => part.mimeType == "application/ld+json").body.attachmentId;
+
+          let content = await gapi.client.gmail.users.messages.attachments.get({
+              "userId": "me", messageId: id, id: attachment});
+
+          let payload = JSON.parse(atob(content.result.data));
+          return payload;
       }
 
       async function getProfile(label) {
@@ -124,10 +153,15 @@ Content-Type: application/ld+json; charset="utf-8"
           });
           let {emailAddress} = result;
 
-          let messages = await gapi.client.gmail.users.messages.list({
+          let ids = await gapi.client.gmail.users.messages.list({
               "userId": "me", labelIds: [label]});
-          // console.log(messages.result.messages);
-          return {email: emailAddress, messages: messages.result.messages};
+
+          let messages = [];
+          for (let {id} of ids.result.messages) {
+              messages.push(getMessage(id));
+          }
+
+          return {email: emailAddress, messages: Promise.all(messages)};
       }
 
       async function setUp() {
@@ -153,7 +187,6 @@ Content-Type: application/ld+json; charset="utf-8"
               });
               label = result.id;
           }
-          // console.log(`SetUp: Found label ${label}`);
           return {"label": label};
       }
 
@@ -202,7 +235,7 @@ Content-Type: application/ld+json; charset="utf-8"
        *
        * @param {string} message Text to be placed in pre element.
        */
-      function appendPre(message) {
+      function log(message) {
         var pre = document.getElementById('content');
         var textContent = document.createTextNode(message + '\n');
         pre.appendChild(textContent);
@@ -217,15 +250,15 @@ Content-Type: application/ld+json; charset="utf-8"
             'userId': 'me'
         }).then(function(response) {
           var labels = response.result.labels;
-          appendPre('Labels:');
+          log('Labels:');
 
           if (labels && labels.length > 0) {
             for (i = 0; i < labels.length; i++) {
               var label = labels[i];
-              appendPre(label.name)
+              log(label.name)
             }
           } else {
-            appendPre('No Labels found.');
+            log('No Labels found.');
           }
         });
       }
