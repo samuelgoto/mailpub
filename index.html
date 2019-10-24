@@ -91,8 +91,8 @@ Content-Type: application/ld+json; charset="utf-8"
   "body": "${body}"
 }
 --boundary-string--`;
-          console.log(title);
-          console.log(result);
+          //console.log(title);
+          //console.log(result);
           return result;
       }
 
@@ -116,8 +116,9 @@ Content-Type: application/ld+json; charset="utf-8"
           let compose = async function() {
               let title = prompt("Enter title");
               let body = prompt("Enter body");
-              console.log(email);
-              let mime = message(email, "goto@google.com", title, body);
+              // console.log(email);
+              let mime = message(email, "goto@google.com",
+                                 escape(title), escape(body));
               let {id, thread} = await sendEmail(label, mime);
               log(`Sent: ${id}`);
           };
@@ -126,7 +127,7 @@ Content-Type: application/ld+json; charset="utf-8"
               let messages = await getPosts(label, email);
               log(`Posts from ${email}:`);
               for (let message of messages) {
-                  let {title, body} = await message;
+                  let {from, data: {title, body}} = await message;
                   log(`  - [${title}]: ${body}`);
               }
           }
@@ -146,20 +147,76 @@ Content-Type: application/ld+json; charset="utf-8"
           log(`Welcome ${email}!`);
           log(``);
 
+          let unsubscribes = await getUnsubscribes(email);
+          log(`Unsubcribe requests:`);
+          for (let message of unsubscribes) {
+              let {id, from, data} = await message;
+              if (!data.startsWith("unsubscribe")) {
+                  continue;
+              }
+              log(`  - Unsuscribes ${data.trim()} (${from})`);
+          }
+
+          let subscribes = await getSubscribes(email);
+          log(`Subcribe requests:`);
+          for (let message of subscribes) {
+              let {id, from, data} = await message;
+              await approve(id);
+              log(`  - Subscribes ${data.trim()} (${from})? Yes.`);
+          }
+
+          let subscribers = await getSubscribers(email);
+          log(`Subcribers:`);
+          for (let message of subscribers) {
+              let {from, data} = await message;
+              log(`  - ${data.trim()} (${from})`);
+          }
+
           await search(email);
       }
 
-      async function getMessage(id) {
-          // console.log(id);
+      async function approve(id) {
+          console.log(id);
+          await gapi.client.gmail.users.messages.modify({
+              "userId": "me",
+              "id": id,
+              "removeLabelIds": ["UNREAD"]
+          });
+      }
+
+      function base64(data) {
+          return atob(data.replace(/_/g, '/').replace(/-/g, '+'));
+      }
+
+      async function getMessage(id, type) {
           let {result} = await gapi.client.gmail.users.messages.get({
               "userId": "me", id: id});
-          let attachment = result.payload.parts.find(part => part.mimeType == "application/ld+json").body.attachmentId;
+
+          let from = result.payload.headers.find(({name}) => name == "From")
+              .value;
+
+          if (!result.payload.parts &&
+              result.payload.mimeType == type &&
+              result.payload.body) {
+              return {id: id, from: from, data: base64(result.payload.body.data)};
+          }
+
+          let data = result.payload.parts.find(
+              ({mimeType, body}) => (mimeType == type && body.data));
+
+          if (data) {
+              //console.log(result);
+              return {id: id, from: from, data: base64(data.body.data)};
+          }
+
+          let attachment = result.payload.parts.find(part => part.mimeType == type).body.attachmentId;
 
           let content = await gapi.client.gmail.users.messages.attachments.get({
               "userId": "me", messageId: id, id: attachment});
 
-          let payload = JSON.parse(atob(content.result.data));
-          return payload;
+          let payload = JSON.parse(base64(content.result.data));
+
+          return {id: id, from: from, data: payload};
       }
 
       async function getEmail() {
@@ -169,21 +226,40 @@ Content-Type: application/ld+json; charset="utf-8"
           return result.result.emailAddress;
       }
 
-      async function getPosts(label, email) {
-          let q = `from:${email}`;
-
+      async function getMessages({label, q}, type) {
+          let labels = [];
+          if (label) {
+              labels.push(label);
+          }
+          // console.log(`Query: ${q}`);
           let ids = await gapi.client.gmail.users.messages.list({
               "userId": "me",
-              labelIds: [label],
+              labelIds: labels,
               q: q
           });
 
           let messages = [];
           for (let {id} of ids.result.messages || []) {
-              messages.push(getMessage(id));
+              messages.push(getMessage(id, type));
           }
 
           return messages;
+      }
+
+      async function getPosts(label, email) {
+          return getMessages({label: label, q: `from:${email}`}, "application/ld+json");
+      }
+
+      async function getUnsubscribes(email) {
+          return getMessages({q: `to:${email} is:unread unsubscribe`}, "text/plain");
+      }
+
+      async function getSubscribes(email) {
+          return getMessages({q: `to:${email} is:unread subscribe`}, "text/plain");
+      }
+
+      async function getSubscribers(email) {
+          return getMessages({q: `to:${email} is:read subscribe`}, "text/plain");
       }
 
       async function setUp() {
@@ -230,10 +306,8 @@ Content-Type: application/ld+json; charset="utf-8"
                       "id": id,
                       "addLabelIds": [label, "CATEGORY_SOCIAL"]
                   });
-              // console.log(modify);
               return {id: id, thread: threadId};
           } catch (e) {
-              // console.log(e.result);
           }
       }
 
