@@ -14,6 +14,7 @@
     <pre id="content" style="white-space: pre-wrap;"></pre>
 
     <button id="compose">Compose</button>
+    <button id="search">Search</button>
 
     <script type="text/javascript">
       // Client ID and API key from the Developer Console
@@ -103,34 +104,49 @@ Content-Type: application/ld+json; charset="utf-8"
           if (isSignedIn) {
               authorizeButton.style.display = 'none';
               signoutButton.style.display = 'block';
-              // listLabels();
-
-              let {label} = await setUp();
-              let {email, messages} = await getProfile(label);
-              log(`Welcome, ${email}!`);
-              // console.log(messages);
-              log(``);
-              log(`Your posts:`);
-              for (let message of await messages) {
-                  // appendPre(message);
-                  log(`  - [${message.title}]: ${message.body}`);
-              }
-
-              let compose = async function() {
-                  let title = prompt("Enter title");
-                  let body = prompt("Enter body");
-                  let mime = message(email, "goto@google.com", title, body);
-                  let {id, thread} = await sendEmail(label, mime);
-                  log(`Sent: ${id}`);
-              };
-
-              document.getElementById("compose")
-                  .addEventListener("click", compose);
-
+              main();
           } else {
               authorizeButton.style.display = 'block';
               signoutButton.style.display = 'none';
           }
+      }
+
+      async function main() {
+
+          let compose = async function() {
+              let title = prompt("Enter title");
+              let body = prompt("Enter body");
+              console.log(email);
+              let mime = message(email, "goto@google.com", title, body);
+              let {id, thread} = await sendEmail(label, mime);
+              log(`Sent: ${id}`);
+          };
+
+          let search = async function(email) {
+              let messages = await getPosts(label, email);
+              log(`Posts from ${email}:`);
+              for (let message of messages) {
+                  let {title, body} = await message;
+                  log(`  - [${title}]: ${body}`);
+              }
+          }
+
+          document.getElementById("compose")
+              .addEventListener("click", compose);
+
+          document.getElementById("search")
+              .addEventListener("click", function() {
+                  let email = prompt("Enter user email");
+                  search(email);
+              });
+
+          let {label} = await setUp();
+
+          let email = await getEmail();
+          log(`Welcome ${email}!`);
+          log(``);
+
+          await search(email);
       }
 
       async function getMessage(id) {
@@ -146,22 +162,28 @@ Content-Type: application/ld+json; charset="utf-8"
           return payload;
       }
 
-      async function getProfile(label) {
-          let {result} =
-              await gapi.client.gmail.users.getProfile({
+      async function getEmail() {
+          let result = await gapi.client.gmail.users.getProfile({
               "userId": "me"
           });
-          let {emailAddress} = result;
+          return result.result.emailAddress;
+      }
+
+      async function getPosts(label, email) {
+          let q = `from:${email}`;
 
           let ids = await gapi.client.gmail.users.messages.list({
-              "userId": "me", labelIds: [label]});
+              "userId": "me",
+              labelIds: [label],
+              q: q
+          });
 
           let messages = [];
-          for (let {id} of ids.result.messages) {
+          for (let {id} of ids.result.messages || []) {
               messages.push(getMessage(id));
           }
 
-          return {email: emailAddress, messages: Promise.all(messages)};
+          return messages;
       }
 
       async function setUp() {
