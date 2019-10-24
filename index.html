@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Gmail API Quickstart</title>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <p>Gmail API Quickstart</p>
+
+    <!--Add buttons to initiate auth sequence and sign out-->
+    <button id="authorize_button" style="display: none;">Authorize</button>
+    <button id="signout_button" style="display: none;">Sign Out</button>
+
+    <pre id="content" style="white-space: pre-wrap;"></pre>
+
+    <script type="text/javascript">
+      // Client ID and API key from the Developer Console
+      var CLIENT_ID = '1034702123093-c32abr8n7s93t1ct8m4tor60khliem0s.apps.googleusercontent.com';
+      var API_KEY = 'AIzaSyAU2kTz_fq1xZA9wtXReFsCMhYQuTU0my8';
+
+      // Array of API discovery doc URLs for APIs used by the quickstart
+      var DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest"];
+
+      // Authorization scopes required by the API; multiple scopes can be
+      // included, separated by spaces.
+      var SCOPES = 'https://www.googleapis.com/auth/gmail.modify';
+
+      var authorizeButton = document.getElementById('authorize_button');
+      var signoutButton = document.getElementById('signout_button');
+
+      /**
+       *  On load, called to load the auth2 library and API client library.
+       */
+      function handleClientLoad() {
+        gapi.load('client:auth2', initClient);
+      }
+
+      /**
+       *  Initializes the API client library and sets up sign-in state
+       *  listeners.
+       */
+      function initClient() {
+        gapi.client.init({
+          apiKey: API_KEY,
+          clientId: CLIENT_ID,
+          discoveryDocs: DISCOVERY_DOCS,
+          scope: SCOPES
+        }).then(function () {
+          // Listen for sign-in state changes.
+          gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+
+          // Handle the initial sign-in state.
+          updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+          authorizeButton.onclick = handleAuthClick;
+          signoutButton.onclick = handleSignoutClick;
+        }, function(error) {
+          appendPre(JSON.stringify(error, null, 2));
+        });
+      }
+
+      function message(from, to) {
+          let result =
+`Content-Type: multipart/alternative; boundary="boundary-string"
+From: ${from}
+To: ${to}
+Subject: hello world
+
+--boundary-string
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: inline
+
+Plain text email goes here!
+This is the fallback if email client does not support HTML
+
+--boundary-string
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: inline
+
+<h1>This is the HTML Section!</h1>
+<p>This is what displays in most modern email clients</p>
+
+--boundary-string
+Content-Type: application/ld+json; charset="utf-8"
+{
+  "@context": "http://www.w3.org/ns/mailpub",
+  "@type": "Post",
+  "title": "Hello World",
+  "body": "Hi"
+}
+--boundary-string--`;
+          return result;
+      }
+
+      /**
+       *  Called when the signed in status changes, to update the UI
+       *  appropriately. After a sign-in, the API is called.
+       */
+      async function updateSigninStatus(isSignedIn) {
+          if (isSignedIn) {
+              authorizeButton.style.display = 'none';
+              signoutButton.style.display = 'block';
+              listLabels();
+
+              let {label} = await setUp();
+              console.log(`SetUp: ${label}`);
+              let {email, messages} = await getProfile(label);
+              console.log(`Email: ${email}`);
+              console.log(messages);
+              let mime = message(email, "goto@google.com");
+              let {id, thread} = await sendEmail(label, mime);
+              console.log(`Sent: ${id}`);
+          } else {
+              authorizeButton.style.display = 'block';
+              signoutButton.style.display = 'none';
+          }
+      }
+
+      async function getProfile(label) {
+          let {result} =
+              await gapi.client.gmail.users.getProfile({
+              "userId": "me"
+          });
+          let {emailAddress} = result;
+
+          let messages = await gapi.client.gmail.users.messages.list({
+              "userId": "me", labelIds: [label]});
+          // console.log(messages.result.messages);
+          return {email: emailAddress, messages: messages.result.messages};
+      }
+
+      async function setUp() {
+          let {result} =
+              await gapi.client.gmail.users.labels.list({
+                  "userId": "me"
+              });
+          let {labels} = result;
+          for (let {id, name} of labels) {
+              // console.log(`${id} ${name}`);
+          }
+          let key = "@mailpub";
+          let mailpub = labels.find(x => x.name == key);
+          let label;
+          if (mailpub) {
+              label = mailpub.id;
+          } else {
+              let {result} = await gapi.client.gmail.users.labels.create({
+                  "userId": "me",
+                  "name": key,
+                  "labelListVisibility": "labelHide",
+                  "messageListVisibility": "hide"
+              });
+              label = result.id;
+          }
+          // console.log(`SetUp: Found label ${label}`);
+          return {"label": label};
+      }
+
+      async function sendEmail(label, email) {
+          try {
+              let {result} =
+                  await gapi.client.gmail.users.messages.send({
+                      "userId": "me",
+                      "resource": {
+                          "raw": btoa(email)
+                      }
+                  });
+              let {id, threadId, labelIds} = result;
+              // console.log(`${id} ${threadId} ${labelIds}`);
+              // console.log(`Assigning label to ${label}`);
+              let modify =
+                  await gapi.client.gmail.users.messages.modify({
+                      "userId": "me",
+                      "id": id,
+                      "addLabelIds": [label, "CATEGORY_SOCIAL"]
+                  });
+              // console.log(modify);
+              return {id: id, thread: threadId};
+          } catch (e) {
+              // console.log(e.result);
+          }
+      }
+
+      /**
+       *  Sign in the user upon button click.
+       */
+      function handleAuthClick(event) {
+        gapi.auth2.getAuthInstance().signIn();
+      }
+
+      /**
+       *  Sign out the user upon button click.
+       */
+      function handleSignoutClick(event) {
+        gapi.auth2.getAuthInstance().signOut();
+      }
+
+      /**
+       * Append a pre element to the body containing the given message
+       * as its text node. Used to display the results of the API call.
+       *
+       * @param {string} message Text to be placed in pre element.
+       */
+      function appendPre(message) {
+        var pre = document.getElementById('content');
+        var textContent = document.createTextNode(message + '\n');
+        pre.appendChild(textContent);
+      }
+
+      /**
+       * Print all Labels in the authorized user's inbox. If no labels
+       * are found an appropriate message is printed.
+       */
+      function listLabels() {
+        gapi.client.gmail.users.labels.list({
+            'userId': 'me'
+        }).then(function(response) {
+          var labels = response.result.labels;
+          appendPre('Labels:');
+
+          if (labels && labels.length > 0) {
+            for (i = 0; i < labels.length; i++) {
+              var label = labels[i];
+              appendPre(label.name)
+            }
+          } else {
+            appendPre('No Labels found.');
+          }
+        });
+      }
+
+    </script>
+
+    <script async defer src="https://apis.google.com/js/api.js"
+      onload="this.onload=function(){};handleClientLoad()"
+      onreadystatechange="if (this.readyState === 'complete') this.onload()">
+    </script>
+  </body>
+</html>
