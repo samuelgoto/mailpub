@@ -3,6 +3,12 @@
   <head>
     <title>MailPub</title>
     <meta charset="utf-8" />
+    <script>
+      var exports = {};
+      var require = () => {};
+    </script>
+    <script src="base64url.js"></script>
+    <script src="pad-string.js"></script>
   </head>
   <body>
     <p>MailPub</p>
@@ -288,13 +294,13 @@ Content-Type: application/ld+json; charset="utf-8"
           }
 
           static encode(data) {
-              return btoa(encodeURIComponent(data).replace(/%([0-9A-F]{2})/g,
-                function toSolidBytes(match, p1) {
-                    return String.fromCharCode('0x' + p1);
-              }));
+              //return btoa(encodeURIComponent(data).replace(/%([0-9A-F]{2})/g,
+              //  function toSolidBytes(match, p1) {
+              //      return String.fromCharCode('0x' + p1);
+              //}));
               // return this.escape(Buffer.from(str, 'utf8').toString('base64'))
-              return btoa(data);
-              return btoa(data.replace(/\+/g,'-').replace(/\//g,'_')).replace(/\=+$/m,'');
+              return fromBase64(btoa(data));
+              //return btoa(data.replace(/\+/g,'-').replace(/\//g,'_')).replace(/\=+$/m,'');
           }
       }
 
