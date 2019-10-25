@@ -148,35 +148,67 @@ Content-Type: application/ld+json; charset="utf-8"
           log(``);
 
           let unsubscribes = await getUnsubscribes(email);
-          log(`Unsubcribe requests:`);
+          log(`Unsubscribe requests:`);
           for (let message of unsubscribes) {
               let {id, from, data} = await message;
               if (!data.startsWith("unsubscribe")) {
                   continue;
               }
-              log(`  - Unsuscribes ${data.trim()} (${from})`);
+              await unsubscribe(id, from, label);
+              log(`  - Unsuscribes [${data.trim()}] from ${from}? Ok.`);
           }
 
           let subscribes = await getSubscribes(email);
-          log(`Subcribe requests:`);
+          log(`Subscribe requests:`);
           for (let message of subscribes) {
               let {id, from, data} = await message;
-              await approve(id);
-              log(`  - Subscribes ${data.trim()} (${from})? Yes.`);
+              await subscribe(id, label);
+              log(`  - Subscribes [${data.trim()}[ from ${from}? Ok.`);
           }
 
           let subscribers = await getSubscribers(email);
-          log(`Subcribers:`);
+          log(`Subscribers:`);
           for (let message of subscribers) {
-              let {from, data} = await message;
-              log(`  - ${data.trim()} (${from})`);
+              let {id, from, data} = await message;
+              log(`  - ${from}`);
           }
 
           await search(email);
       }
 
-      async function approve(id) {
-          console.log(id);
+      async function subscribe(id, label) {
+          await gapi.client.gmail.users.messages.modify({
+              "userId": "me",
+              "id": id,
+              "removeLabelIds": ["UNREAD"],
+              "addLabelIds": [label],
+          });
+      }
+
+      async function unsubscribe(id, email, label) {
+          let raw = email.match( /[-.\w]+@([\w-]+\.)+[\w-]+/g)[0];
+
+          let q = `from:${raw} subscribe`;
+          let requests = await gapi.client.gmail.users.messages.list({
+              "userId": "me",
+              labelIds: [label],
+              q: q
+          });
+
+          let subscribes = [];
+          for (let request of requests.result.messages || []) {
+              let sub = gapi.client.gmail.users.messages.modify({
+                  "userId": "me",
+                  "id": request.id,
+                  "removeLabelIds": [label]
+              });
+              subscribes.push(sub);
+          }
+
+          // Waits for all subscribes to be removed from the label
+          await Promise.all(subscribes);
+
+          // Marks the completion of the unubscription
           await gapi.client.gmail.users.messages.modify({
               "userId": "me",
               "id": id,
@@ -198,6 +230,7 @@ Content-Type: application/ld+json; charset="utf-8"
           if (!result.payload.parts &&
               result.payload.mimeType == type &&
               result.payload.body) {
+              // console.log(result);
               return {id: id, from: from, data: base64(result.payload.body.data)};
           }
 
@@ -250,16 +283,18 @@ Content-Type: application/ld+json; charset="utf-8"
           return getMessages({label: label, q: `from:${email}`}, "application/ld+json");
       }
 
-      async function getUnsubscribes(email) {
-          return getMessages({q: `to:${email} is:unread unsubscribe`}, "text/plain");
+      async function getUnsubscribes(email, approved) {
+          let status = approved ? "is:read" : "is:unread"
+          return getMessages({q: `to:${email} ${status} unsubscribe`}, "text/plain");
       }
 
-      async function getSubscribes(email) {
-          return getMessages({q: `to:${email} is:unread subscribe`}, "text/plain");
+      async function getSubscribes(email, approved) {
+          let status = approved ? "is:read" : "is:unread"
+          return getMessages({q: `to:${email} ${status} subscribe`}, "text/plain");
       }
 
       async function getSubscribers(email) {
-          return getMessages({q: `to:${email} is:read subscribe`}, "text/plain");
+          return getMessages({q: `to:${email} is:read label:@mailpub subscribe`}, "text/plain");
       }
 
       async function setUp() {
