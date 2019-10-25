@@ -66,7 +66,7 @@
 `Content-Type: multipart/alternative; boundary="boundary-string"
 From: ${from}
 To: ${to}
-Subject: ${title}
+Subject: hello world
 
 --boundary-string
 Content-Type: text/plain; charset="utf-8"
@@ -228,9 +228,27 @@ Content-Type: application/ld+json; charset="utf-8"
               return atob(data.replace(/_/g, '/').replace(/-/g, '+'));
           }
 
+
+          unescape(str) {
+              return (str + '==='.slice((str.length + 3) % 4))
+                  .replace(/-/g, '+')
+                  .replace(/_/g, '/')
+          }
+
+          escape(str) {
+              return str.replace(/\+/g, '-')
+                  .replace(/\//g, '_')
+                  .replace(/=/g, '')
+          }
+
           static encode(data) {
+              return btoa(encodeURIComponent(data).replace(/%([0-9A-F]{2})/g,
+                function toSolidBytes(match, p1) {
+                    return String.fromCharCode('0x' + p1);
+              }));
+              // return this.escape(Buffer.from(str, 'utf8').toString('base64'))
               return btoa(data);
-              // return btoa(data.replace(/\+/g,'-').replace(/\//g,'_')).replace(/\=+$/m,'');
+              return btoa(data.replace(/\+/g,'-').replace(/\//g,'_')).replace(/\=+$/m,'');
           }
       }
 
@@ -336,26 +354,24 @@ Content-Type: application/ld+json; charset="utf-8"
       }
 
       async function sendEmail(label, email) {
-          try {
-              let {result} =
-                  await gapi.client.gmail.users.messages.send({
-                      "userId": "me",
-                      "resource": {
-                          "raw": Base64.encode(email)
-                      }
-                  });
-              let {id, threadId, labelIds} = result;
-              // console.log(`${id} ${threadId} ${labelIds}`);
-              // console.log(`Assigning label to ${label}`);
-              let modify =
-                  await gapi.client.gmail.users.messages.modify({
-                      "userId": "me",
-                      "id": id,
-                      "addLabelIds": [label, "CATEGORY_SOCIAL"]
-                  });
-              return {id: id, thread: threadId};
-          } catch (e) {
-          }
+          let {result} =
+              await gapi.client.gmail.users.messages.send({
+                  "userId": "me",
+                  "resource": {
+                      "raw": Base64.encode(email)
+                  }
+              });
+          // console.log(result);
+          let {id, threadId, labelIds} = result;
+          //console.log(`${id} ${threadId} ${labelIds}`);
+          //console.log(`Assigning label to ${label}`);
+          let modify =
+              await gapi.client.gmail.users.messages.modify({
+                  "userId": "me",
+                  "id": id,
+                  "addLabelIds": [label, "CATEGORY_SOCIAL"]
+              });
+          return {id: id, thread: threadId};
       }
 
       /**
