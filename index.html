@@ -127,7 +127,11 @@ Content-Type: application/ld+json; charset="utf-8"
               let messages = await getPosts(label, email);
               log(`Posts from ${email}:`);
               for (let message of messages) {
-                  let {from, data: {title, body}} = await message;
+                  let result = await message;
+                  if (!result) {
+                      continue;
+                  }
+                  let {from, data: {title, body}} = result;
                   log(`  - [${title}]: ${body}`);
               }
           }
@@ -146,6 +150,9 @@ Content-Type: application/ld+json; charset="utf-8"
           let email = await getEmail();
           log(`Welcome ${email}!`);
           log(``);
+
+          // list of commands
+          // https://people.cas.sc.edu/burket/listserv.html
 
           let unsubscribes = await getUnsubscribes(email);
           log(`Unsubscribe requests:`);
@@ -216,8 +223,15 @@ Content-Type: application/ld+json; charset="utf-8"
           });
       }
 
-      function base64(data) {
-          return atob(data.replace(/_/g, '/').replace(/-/g, '+'));
+      class Base64 {
+          static decode(data) {
+              return atob(data.replace(/_/g, '/').replace(/-/g, '+'));
+          }
+
+          static encode(data) {
+              return btoa(data);
+              // return btoa(data.replace(/\+/g,'-').replace(/\//g,'_')).replace(/\=+$/m,'');
+          }
       }
 
       async function getMessage(id, type) {
@@ -227,19 +241,17 @@ Content-Type: application/ld+json; charset="utf-8"
           let from = result.payload.headers.find(({name}) => name == "From")
               .value;
 
-          if (!result.payload.parts &&
-              result.payload.mimeType == type &&
-              result.payload.body) {
-              // console.log(result);
-              return {id: id, from: from, data: base64(result.payload.body.data)};
+          if (!result.payload.parts && result.payload.body && result.payload.mimeType == type) {
+              return {id: id, from: from, data: Base64.decode(result.payload.body.data)};
           }
 
+          if (!result.payload.parts) {
+              return undefined;
+          }
           let data = result.payload.parts.find(
               ({mimeType, body}) => (mimeType == type && body.data));
-
           if (data) {
-              //console.log(result);
-              return {id: id, from: from, data: base64(data.body.data)};
+              return {id: id, from: from, data: Base64.decode(data.body.data)};
           }
 
           let attachment = result.payload.parts.find(part => part.mimeType == type).body.attachmentId;
@@ -247,7 +259,7 @@ Content-Type: application/ld+json; charset="utf-8"
           let content = await gapi.client.gmail.users.messages.attachments.get({
               "userId": "me", messageId: id, id: attachment});
 
-          let payload = JSON.parse(base64(content.result.data));
+          let payload = JSON.parse(Base64.decode(content.result.data));
 
           return {id: id, from: from, data: payload};
       }
@@ -280,7 +292,7 @@ Content-Type: application/ld+json; charset="utf-8"
       }
 
       async function getPosts(label, email) {
-          return getMessages({label: label, q: `from:${email}`}, "application/ld+json");
+          return getMessages({label: label, q: `from:${email} label:@mailpub`}, "application/ld+json");
       }
 
       async function getUnsubscribes(email, approved) {
@@ -329,7 +341,7 @@ Content-Type: application/ld+json; charset="utf-8"
                   await gapi.client.gmail.users.messages.send({
                       "userId": "me",
                       "resource": {
-                          "raw": btoa(email)
+                          "raw": Base64.encode(email)
                       }
                   });
               let {id, threadId, labelIds} = result;
