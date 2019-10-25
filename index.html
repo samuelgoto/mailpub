@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Gmail API Quickstart</title>
+    <title>MailPub</title>
     <meta charset="utf-8" />
   </head>
   <body>
-    <p>Gmail API Quickstart</p>
+    <p>MailPub</p>
+
+    <button id="compose">Post</button>
+    <button id="join">Follow</button>
+    <button id="leave">Unfollow</button>
+    <button id="search">Search</button>
+
+    <pre id="content" style="white-space: pre-wrap;"></pre>
 
     <!--Add buttons to initiate auth sequence and sign out-->
     <button id="authorize_button" style="display: none;">Authorize</button>
     <button id="signout_button" style="display: none;">Sign Out</button>
-
-    <pre id="content" style="white-space: pre-wrap;"></pre>
-
-    <button id="compose">Compose</button>
-    <button id="search">Search</button>
 
     <script type="text/javascript">
       // Client ID and API key from the Developer Console
@@ -114,11 +116,13 @@ Content-Type: application/ld+json; charset="utf-8"
       async function main() {
 
           let compose = async function() {
+              if (followers.length == 0) {
+                  alert("No followers");
+                  return;
+              }
               let title = prompt("Enter title");
               let body = prompt("Enter body");
-              // console.log(email);
-              let mime = message(email, "goto@google.com",
-                                 escape(title), escape(body));
+              let mime = message(email, followers.join(","), title, body);
               let {id, thread} = await sendEmail(label, mime);
               log(`Sent: ${id}`);
           };
@@ -145,6 +149,16 @@ Content-Type: application/ld+json; charset="utf-8"
                   search(email);
               });
 
+          document.getElementById("join")
+              .addEventListener("click", () => {
+                  join(email, prompt("Enter email"))
+              });
+
+          document.getElementById("leave")
+              .addEventListener("click", () => {
+                  leave(email, prompt("Enter email"))
+              });
+
           let {label} = await setUp();
 
           let email = await getEmail();
@@ -155,32 +169,60 @@ Content-Type: application/ld+json; charset="utf-8"
           // https://people.cas.sc.edu/burket/listserv.html
 
           let unsubscribes = await getUnsubscribes(email);
-          log(`Unsubscribe requests:`);
+          log(`Unfollow requests:`);
           for (let message of unsubscribes) {
               let {id, from, data} = await message;
               if (!data.startsWith("unsubscribe")) {
                   continue;
               }
               await unsubscribe(id, from, label);
-              log(`  - Unsuscribes [${data.trim()}] from ${from}? Ok.`);
+              log(`  - Unfollow [${data.trim()}] from ${from}? Ok.`);
           }
 
           let subscribes = await getSubscribes(email);
-          log(`Subscribe requests:`);
+          log(`Follow requests:`);
           for (let message of subscribes) {
               let {id, from, data} = await message;
               await subscribe(id, label);
-              log(`  - Subscribes [${data.trim()}[ from ${from}? Ok.`);
+              log(`  - Follow [${data.trim()}[ from ${from}? Ok.`);
           }
 
           let subscribers = await getSubscribers(email);
-          log(`Subscribers:`);
+          log(`Followers:`);
+          let followers = [];
           for (let message of subscribers) {
               let {id, from, data} = await message;
               log(`  - ${from}`);
+              followers.push(parse(from));
           }
 
+          // console.log(followers);
+
           await search(email);
+      }
+
+      async function join(from, to) {
+          let mime = message(from, to, "", "subscribe all");
+          let result = await gapi.client.gmail.users.messages.send({
+              "userId": "me",
+              "resource": {
+                  "raw": Base64.encode(mime)
+              }
+          });
+
+          log(`Join request sent to ${to}`);
+      }
+
+      async function leave(from, to) {
+          let mime = message(from, to, "", "unsubscribe all");
+          let result = await gapi.client.gmail.users.messages.send({
+              "userId": "me",
+              "resource": {
+                  "raw": Base64.encode(mime)
+              }
+          });
+
+          log(`Leave request sent to ${to}`);
       }
 
       async function subscribe(id, label) {
@@ -192,8 +234,12 @@ Content-Type: application/ld+json; charset="utf-8"
           });
       }
 
+      function parse(email) {
+          return email.match( /[-.\w]+@([\w-]+\.)+[\w-]+/g)[0];
+      }
+
       async function unsubscribe(id, email, label) {
-          let raw = email.match( /[-.\w]+@([\w-]+\.)+[\w-]+/g)[0];
+          let raw = parse(email);
 
           let q = `from:${raw} subscribe`;
           let requests = await gapi.client.gmail.users.messages.list({
