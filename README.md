@@ -117,4 +117,9 @@ Content-Type: application/ld+json; profile="https://www.w3.org/ns/activitystream
 ```
 
 ![](static/mailpub2.svg)
+
+As with any social network, discovering information of a specific user is a fairly key functionality.
+
+The MailPub protocol starts by trying to discover the information with [WebFinger](https://webfinger.net/), but if that is unavailable (as it is expected to be the case with major email servers), it fallback to a [LISTSERV](https://en.wikipedia.org/wiki/LISTSERV) [Info command](https://www.lsoft.com/manuals/16.0/htmlhelp/list%20subscribers/LSCommands.html).
+
 ![](static/mailpub4.svg)
