@@ -1,3 +1,3 @@
 # mailpub
 
-![static/mailpub1.svg](Basic)
+![Basic](static/mailpub1.svg)
