@@ -40,7 +40,13 @@ The parts that seemed to be missing were:
 
 At a high level, MailPub is, much like [LISTSERV](https://en.wikipedia.org/wiki/LISTSERV), entirely based on email, so, while this can (and should) be automated, it can also be performed manually. It is ultimatelly a set of conventions of how to write/read email that can be readable by a machine.
 
-At its core, it allows an email user to manage a series of mailing list that the user subscribes and posts to.
+At its most basic operation, it allows users to:
+
+- [Subscribe](#subscribing) to each other
+- [Publish](#publishing) to their subscribers
+- [Discover](#discovery) who subscribes to whom
+
+## Subscribing
 
 It leverages the existing battle-tested infrastructure of mailing lists to allow other email users to follow an email user:
 
@@ -83,6 +89,8 @@ To: alice@foo.com
 Subject: Welcome!
 ```
 
+## Publishing
+
 When Bob publishes, he publishes to his `bob+newsletter+subscribe@list.com` by sending an email to it, which is then distributed to all of his followers via the typical mechanisms that mailing lists already provide.
 
 Bob uses a multi-format mime email, so that email users can read his post, but also, if some of his followers can understand [ActivityPub](https://www.w3.org/TR/activitypub/) format it can be augmented:
@@ -117,6 +125,8 @@ Content-Type: application/ld+json; profile="https://www.w3.org/ns/activitystream
 ```
 
 ![](static/mailpub2.svg)
+
+## Discovery
 
 As with any social network, discovering information of a specific user is a fairly key functionality.
 
