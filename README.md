@@ -38,6 +38,83 @@ The parts that seemed to be missing were:
 
 # Design
 
+At a high level, MailPub is, much like [LISTSERV](https://en.wikipedia.org/wiki/LISTSERV), entirely based on email, so, while this can (and should) be automated, it can also be performed manually. It is ultimatelly a set of conventions of how to write/read email that can be readable by a machine.
+
+At its core, it allows an email user to manage a series of mailing list that the user subscribes and posts to.
+
+It leverages the existing battle-tested infrastructure of mailing lists to allow other email users to follow an email user:
+
 ![](static/mailpub1.svg)
+
+This is implemented with a series of machine-readable conventions over email, on top of [LISTSERV](https://en.wikipedia.org/wiki/LISTSERV).
+
+For example, say `alice@foo.com` wants to follow `bob@email.com`. Alice, using her existing email client sends an email to `bob@email.com`:
+
+```
+From: alice@foo.com
+To: bob@email.com
+Subject: LISTS GLOBAL
+```
+
+Bob, who has an email client that is MailPub aware, receives that email which gets responded automatically to `alice@foo.com` pointing Alice with a machine-readable way to subscribe his newsletter (Bob, before hand, has already set up a `bob+newsletter@list.com` mailing list of his preference):
+
+```
+From: bob@email.com
+To: alice@foo.com
+Subject: Re: LISTS GLOBAL
+newsletter bob+newsletter@list.com
+```
+
+Here, **newsletter** is a well-known list type, which announces that bob has a **newsletter** at a specific address.
+
+Alice, knowing that this is a MailPub convention, then subscribes to Bob's newsletter knowing that it will accept [LISTSERV](https://en.wikipedia.org/wiki/LISTSERV) commands:
+
+```
+From: alice@foo.com
+To: bob+newsletter+subscribe@list.com
+Subject: Subscribe
+```
+
+Which the listserv, having already been configured by Bob to automatically accept members, respond:
+
+```
+From: bob+newsletter+subscribe@list.com
+To: alice@foo.com
+Subject: Welcome!
+```
+
+When Bob publishes, he publishes to his `bob+newsletter+subscribe@list.com` by sending an email to it, which is then distributed to all of his followers via the typical mechanisms that mailing lists already provide.
+
+Bob uses a multi-format mime email, so that email users can read his post, but also, if some of his followers can understand [ActivityPub](https://www.w3.org/TR/activitypub/) format it can be augmented:
+
+```
+From: bob@email.com
+From: bob+newsletter+subscribe@list.com
+Subject: Hello World
+MIME-Version: 1.0
+Content-Type: multipart/mixed;
+        boundary="XXXXboundary text"
+
+Welcome to my first blog post my fellow newsletter subscribers!!
+
+--XXXXboundary text
+Content-Type: text/plain
+
+this is the body text
+
+--XXXXboundary text
+Content-Type: application/ld+json; profile="https://www.w3.org/ns/activitystreams";
+{
+  "@context": ["https://www.w3.org/ns/activitystreams",
+               {"@language": "en-GB"}],
+  "type": "Article",
+  "name": "Hello World!",
+  "content": "Welcome to my first blog post my fellow Mastodon user!",
+  "attributedTo": "https://email.com/~bob",
+  "to": "https://list.com/~bob+newsletter",
+}
+--XXXXboundary text--
+```
+
 ![](static/mailpub2.svg)
 ![](static/mailpub4.svg)
