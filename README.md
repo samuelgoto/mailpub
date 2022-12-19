@@ -133,3 +133,16 @@ As with any social network, discovering information of a specific user is a fair
 The MailPub protocol starts by trying to discover the information with [WebFinger](https://webfinger.net/), but if that is unavailable (as it is expected to be the case with major email servers), it fallback to a [LISTSERV](https://en.wikipedia.org/wiki/LISTSERV) [Info command](https://www.lsoft.com/manuals/16.0/htmlhelp/list%20subscribers/LSCommands.html).
 
 ![](static/mailpub4.svg)
+
+## Naming
+
+Email addresses have a lot of great open and federated properties, but in practice, it is really hard to run your own email server. Personal websites, on the other hand, are substantially easier to host and run.
+
+Although hosting your own site is still done by a tiny tiny fraction of people, it seemed worth connecting the dots between [IndieAuth](https://indieweb.org/IndieAuth) and MailPub because it gives you the ability to address users via `@user.com` as opposed to `user@email.com`.
+
+So, when MailPub runs into an user identifier that looks like `@user.com` it fetches the content of `user.com` and looks for a `<link rel="me" href="email@server.com">`. 
+
+```html
+  <!-- @user.com is shorthand for email@server.com -->
+  <link rel="me" href="email@server.com">
+```
