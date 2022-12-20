@@ -52,7 +52,24 @@ At its most basic operation, it allows users to:
 
 It leverages the existing battle-tested infrastructure of mailing lists to allow other email users to follow an email user:
 
-![](static/mailpub1.svg)
+```
+            bob@email.com                                 alice@foo.com
+            ┌───────────┐          (1) Can I follow you?  ┌───────────┐
+            │           │◄────────────────────────────────┤           │
+            │ email.com │                                 │  foo.com  │
+            │           ├────────────────────────────────►│           │
+            └─────┬─────┘                                 └─────┬─────┘
+                  │       (2) Sure. Subscribe to                │
+(5) Hello World!  │       bob+newsletter@list.com               │  (3) Can I subscribe to you?
+                  │                                             │  Who subscribes? How many?
+                  │                                             │  Archives?
+                  │                ┌──────────┐                 │
+                  │                │          │                 │
+                  └───────────────►│ list.com │◄────────────────┘
+                                   │          │ (4) Sure.
+                                   └──────────┘
+                              bob+newsletter@list.com
+```
 
 This is implemented with a series of machine-readable conventions over email, on top of [LISTSERV](https://en.wikipedia.org/wiki/LISTSERV).
 
@@ -126,7 +143,33 @@ Content-Type: application/ld+json; profile="https://www.w3.org/ns/activitystream
 --XXXXboundary text--
 ```
 
-![](static/mailpub2.svg)
+```
+   bob+newsletter@list.com           bob@email.com                       alice@foo.com
+   ┌───────────┐                     ┌───────────┐                       ┌───────────┐
+   │           │                     │           │                       │           │
+   └─────┬─────┘                     └─────┬─────┘                       └─────┬─────┘
+         │                                 │                                   │
+         │                                 │                              LISTS│
+         │                                 │◄──────────────────────────────────┤
+         │                                 │                                   │
+         │                                 │                                   │
+         │                                 │newsletter bob+newsletter@list.com │
+         │                                 ├──────────────────────────────────►│
+         │                                 │                                   │
+         │                                 │                                   │
+         │                                 │                         SUBSCRIBE │
+         │◄────────────────────────────────┼───────────────────────────────────┤
+         │                                 │                                   │
+         │DONE                             │                                   │
+         ├─────────────────────────────────┼──────────────────────────────────►│
+         │                                 │                                   │
+         │Hello World!                     │                                   │
+         │◄────────────────────────────────┤                                   │
+         │                                 │                                   │
+         │                                 │                                   │
+         │From: bob@email.com, Hello World!│                                   │
+         └─────────────────────────────────┴──────────────────────────────────►┘
+```
 
 ## Discovery
 
@@ -148,3 +191,6 @@ So, when MailPub runs into an user identifier that looks like `@user.com` it fet
   <!-- @user.com is shorthand for email@server.com -->
   <link rel="me" href="email@server.com">
 ```
+
+        
+
