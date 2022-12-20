@@ -36,8 +36,6 @@ The parts that seemed to be missing were:
 - There is no concept of social post types and expression types (that's where we thought that [ActivityPub](https://www.w3.org/TR/activitypub/) would come in)
 - There is no concept of a user-owned global identity: user identities are namespaced by email servers (i.e. user@server.com) (that's where we thought that [IndieAuth](https://indieweb.org/IndieAuth) (`@domain.com` => `user@email.com`) would come in)
 
-![](static/mailpub3.svg)
-
 # Design
 
 At a high level, MailPub is, much like [LISTSERV](https://en.wikipedia.org/wiki/LISTSERV), entirely based on email, so, while this can (and should) be automated, it can also be performed manually. It is ultimatelly a set of conventions of how to write/read email that can be readable by a machine.
