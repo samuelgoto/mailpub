@@ -1,6 +1,6 @@
 # MailPub
 
-> These is a write down of some mental notes I took from a series of conversations with Joseph Smarr and Gordon Brander
+> This is a write down of some mental notes I took from a series of conversations with Joseph Smarr and Gordon Brander
 
 MailPub is an early proposal for an email-based social networking protocol. It leverages the existing, open, federated, mature and resilient deployment of email (SMTP/POP/IMAP) and mailing lists ([LISTSERV](https://en.wikipedia.org/wiki/LISTSERV)) to provide the functionality that you'd typically find in social networks (e.g. following, profiles, etc).
 
