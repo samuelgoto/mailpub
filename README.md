@@ -10,26 +10,23 @@ MailPub tries really hard to work within the constrains of existing email client
 
 # Background
 
-It seemed to some of us that email and newsletters have a lot what you'd want from an open and decentralized social network:
+Email and newsletters seems to have a lot what you'd want from an open and decentralized social network.
 
-- For starters, users already know what email is (e.g. bootstraping)
-- Naming and addressing is built-into email addresses
-- Users get to own the social graph (their contact list)
-- Users get to own the data (emails written and received)
-- Anyone can join (e.g. anyone can use existing servers, custom domain with existing servers or run their own server)
-- It is entirely based on open standards (e.g. POP/SMTP/IMAP and Mime)
-- There is a massive amount of infrastructure that deals with spam and abuse protection
-- It supports a lot of social topologies (e.g. 1:1, 1:many and many:many)
-    - Public following is natural (e.g. subscribing to newsletters)
-    - Private 1:1 is built-in (e.g. traditional email)
-    - Communities of mailing lists   
-- It supports a lot of the social expressions
-    - replying to threads
-    - reshare/retweet by forwarding
-    - notably lacking: likes
-- It does public and private relatively well
+For starters, users already know what email is (e.g. bootstraping) and how to think about it. Naming and addressing (e.g. "hi, you can reach me at user@email.com") is built-into email addresses as well as social norms (e.g. business cards).
 
-The parts that seemed to be missing were:
+Email users get to own their social graph (i.e. their contact list) as well as their data (emails written and received).
+
+Anyone can join: anyone can use existing servers (e.g. @gmail.com), custom domain with existing servers (e.g. me@user.com) or, more rarely, run their own server (me@user.com).
+
+Email is entirely based on open standards (e.g. POP/SMTP/IMAP and Mime) and interoperable.
+
+Because email is interoperable, each client can pick its own ranking function (e.g. chronological, reverse chronological, unread first) as well as spam/abuse algorithms (e.g. bots).
+
+Most impressively, email supports a lot of social topologies (e.g. 1:1, 1:many and many:many). Anyone can set up newsletters to public post to their followers (1:many). Private messages (1:1) is built in. Communities (many:many) naturaly form within discussion forums via mailing lists.
+
+Most of the social expressions are supported natively too: the ability to reply to threads, resharing by forwarding, etc.
+
+The parts that seemed to be missing are:
 
 - There is no concept of a user profile (that's where we thought that [WebFinger](https://webfinger.net/), [vCard](https://en.wikipedia.org/wiki/VCard) or [LISTSERV](https://en.wikipedia.org/wiki/LISTSERV) could come in)
 - There is no concept of programatically finding how to follow an email address (that's where we thought that [LISTSERV](https://en.wikipedia.org/wiki/LISTSERV) would come in)
