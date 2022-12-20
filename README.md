@@ -42,16 +42,6 @@ The parts that seemed to be missing were:
 
 At a high level, MailPub is, much like [LISTSERV](https://en.wikipedia.org/wiki/LISTSERV), entirely based on email, so, while this can (and should) be automated, it can also be performed manually. It is ultimatelly a set of conventions of how to write/read email that can be readable by a machine.
 
-At its most basic operation, it allows users to:
-
-- [Subscribe](#subscribing) to each other
-- [Publish](#publishing) to their subscribers
-- [Discover](#discovery) who subscribes to whom
-
-## Subscribing
-
-It leverages the existing battle-tested infrastructure of mailing lists to allow other email users to follow an email user:
-
 ```
             bob@email.com                                 alice@foo.com
             ┌───────────┐          (1) Can I follow you?  ┌───────────┐
@@ -69,6 +59,44 @@ It leverages the existing battle-tested infrastructure of mailing lists to allow
                                    │          │ (4) Sure.
                                    └──────────┘
                               bob+newsletter@list.com
+```
+
+At its most basic operation, it allows users to:
+
+- [Subscribe](#subscribing) to each other
+- [Publish](#publishing) to their subscribers
+- [Discover](#discovery) who subscribes to whom
+
+## Subscribing
+
+It leverages the existing battle-tested infrastructure of mailing lists to allow other email users to follow an email user:
+
+```
+   bob+newsletter@list.com           bob@email.com                       alice@foo.com
+   ┌───────────┐                     ┌───────────┐                       ┌───────────┐
+   │           │                     │           │                       │           │
+   └─────┬─────┘                     └─────┬─────┘                       └─────┬─────┘
+         │                                 │                                   │
+         │                                 │                              LISTS│
+         │                                 │◄──────────────────────────────────┤
+         │                                 │                                   │
+         │                                 │                                   │
+         │                                 │newsletter bob+newsletter@list.com │
+         │                                 ├──────────────────────────────────►│
+         │                                 │                                   │
+         │                                 │                                   │
+         │                                 │                         SUBSCRIBE │
+         │◄────────────────────────────────┼───────────────────────────────────┤
+         │                                 │                                   │
+         │DONE                             │                                   │
+         ├─────────────────────────────────┼──────────────────────────────────►│
+         │                                 │                                   │
+         │Hello World!                     │                                   │
+         │◄────────────────────────────────┤                                   │
+         │                                 │                                   │
+         │                                 │                                   │
+         │From: bob@email.com, Hello World!│                                   │
+         └─────────────────────────────────┴──────────────────────────────────►┘
 ```
 
 This is implemented with a series of machine-readable conventions over email, on top of [LISTSERV](https://en.wikipedia.org/wiki/LISTSERV).
@@ -141,34 +169,6 @@ Content-Type: application/ld+json; profile="https://www.w3.org/ns/activitystream
   "to": "https://list.com/~bob+newsletter",
 }
 --XXXXboundary text--
-```
-
-```
-   bob+newsletter@list.com           bob@email.com                       alice@foo.com
-   ┌───────────┐                     ┌───────────┐                       ┌───────────┐
-   │           │                     │           │                       │           │
-   └─────┬─────┘                     └─────┬─────┘                       └─────┬─────┘
-         │                                 │                                   │
-         │                                 │                              LISTS│
-         │                                 │◄──────────────────────────────────┤
-         │                                 │                                   │
-         │                                 │                                   │
-         │                                 │newsletter bob+newsletter@list.com │
-         │                                 ├──────────────────────────────────►│
-         │                                 │                                   │
-         │                                 │                                   │
-         │                                 │                         SUBSCRIBE │
-         │◄────────────────────────────────┼───────────────────────────────────┤
-         │                                 │                                   │
-         │DONE                             │                                   │
-         ├─────────────────────────────────┼──────────────────────────────────►│
-         │                                 │                                   │
-         │Hello World!                     │                                   │
-         │◄────────────────────────────────┤                                   │
-         │                                 │                                   │
-         │                                 │                                   │
-         │From: bob@email.com, Hello World!│                                   │
-         └─────────────────────────────────┴──────────────────────────────────►┘
 ```
 
 ## Discovery
