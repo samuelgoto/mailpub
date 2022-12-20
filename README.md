@@ -94,7 +94,8 @@ It leverages the existing battle-tested infrastructure of mailing lists to allow
          │                                 │                                   │
          │                                 │                                   │
          │From: bob@email.com, Hello World!│                                   │
-         └─────────────────────────────────┴──────────────────────────────────►┘
+         │─────────────────────────────────┴──────────────────────────────────►│
+         │                                                                     │
 ```
 
 This is implemented with a series of machine-readable conventions over email, on top of [LISTSERV](https://en.wikipedia.org/wiki/LISTSERV).
