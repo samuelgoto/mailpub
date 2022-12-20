@@ -176,7 +176,32 @@ As with any social network, discovering information of a specific user is a fair
 
 The MailPub protocol starts by trying to discover the information with [WebFinger](https://webfinger.net/), but if that is unavailable (as it is expected to be the case with major email servers), it fallback to a [LISTSERV](https://en.wikipedia.org/wiki/LISTSERV) [Info command](https://www.lsoft.com/manuals/16.0/htmlhelp/list%20subscribers/LSCommands.html).
 
-![](static/mailpub4.svg)
+```
++-----------------+                             +-----------------+
+|  bob@email.com  |                             |  alice@foo.com  |
++--------+--------+                             +--------+--------+
+         |                                               |        
+         |                   GET /.well-known/webfinger  |        
+         |<----------------------------------------------|        
+         |                                               |        
+         | 404                                           |        
+         |---------------------------------------------->|        
+         |                                               |        
+         |                                       INFO ME |        
+         |<----------------------------------------------|        
+         |                                               |        
+         | Name: Sam, Photo: https://email.com/~bob.png  |        
+         |---------------------------------------------->|        
+         |                                               |        
+         |                                LIST following |        
+         |<----------------------------------------------|        
+         |                                               |        
+         | aristotle@athens.edu, russel@ucla.edu         |        
+         |---------------------------------------------->|        
+         |                                               |        
+         |                                               |        
+         |                                               |        
+```
 
 ## Naming
 
